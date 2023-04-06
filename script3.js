@@ -34,16 +34,6 @@ function createLineElement(x1, y1, x2, y2) {
     return line;
 }
 
-// function setInitialViewBox(svg, svgContainer) {
-//     const containerWidth = svgContainer.clientWidth;
-//     const containerHeight = svgContainer.clientHeight;
-//     const aspectRatio = containerWidth / containerHeight;
-//     const viewBoxHeight = 20;
-//     const viewBoxWidth = viewBoxHeight * aspectRatio;
-
-//     svg.setAttribute("viewBox", `0 0 ${viewBoxWidth} ${viewBoxHeight}`);
-// }
-
 function setInitialViewBox(svg, svgContainer, points) {
     const margin = 10;
     const [minX, maxX, minY, maxY] = points.reduce(
@@ -76,11 +66,7 @@ function setInitialViewBox(svg, svgContainer, points) {
 
     svg.setAttribute("viewBox", `${minX - margin} ${minY - margin} ${viewBoxWidth} ${viewBoxHeight}`);
 }
-
-function main() {
-    const points = sineWaveData(30, 0, 6 * Math.PI, 100, 1, 8);
-    const controlledPoints = getControl(points);
-
+function draw(controlledPoints) {
     const svgContainer = document.getElementById("svg-container");
     const svg = createSVGElement();
     svgContainer.appendChild(svg);
@@ -93,24 +79,52 @@ function main() {
         const line = createLineElement(point1.x, point1.y, point2.x, point2.y);
         svg.appendChild(line);
     }
+    return svg
+}
 
+
+function main() {
+    const points = sineWaveData(30, 0, 6 * Math.PI, 100, 1, 8);
+    const controlledPoints = getControl(points);
+    const svgContainer = document.getElementById("svg-container");
+
+    const svg = draw(controlledPoints)
+    console.log(svg)
     setInitialViewBox(svg, svgContainer, controlledPoints);
 
     // Initialize the SVG PanZoom library
     const panZoomInstance = panzoom(svg, {
-        // The existing configuration for the panzoom library.
-        // ...
+        zoomEnabled: true,
+        panEnabled: true,
+        controlIconsEnabled: true,
+        fit: true,
+        center: true,
+        minZoom: 0.015,
+        maxZoom: 1000,
+        beforePan: function () {
+            // Disable animation during panning to improve performance
+            panZoomInstance.disablePanAnimation();
+        },
+        onPan: function () {
+            // Re-enable animation after panning is complete
+            panZoomInstance.enablePanAnimation();
+        },
+        onZoom: function () {
+            // Update the viewBox after zooming
+            const { x, y } = panZoomInstance.getPan();
+            const zoomLevel = panZoomInstance.getZoom();
+            const viewBox = svg.getAttribute("viewBox").split(" ");
+            const viewBoxWidth = parseFloat(viewBox[2]);
+            const viewBoxHeight = parseFloat(viewBox[3]);
+            //svg.setAttribute("viewBox", `${-x} ${-y} ${viewBoxWidth / zoomLevel} ${viewBoxHeight / zoomLevel}`);
+
+        },
+
     });
-
-    // Update the viewBox when the window is resized
-    //window.addEventListener("resize", () => setInitialViewBox(svg, svgContainer, controlledPoints));
+    setWindowSize(svg, svgContainer, controlledPoints)
 }
-
+// Update the viewBox when the window is resized
+function setWindowSize(svg, svgContainer, controlledPoints) {
+    window.addEventListener("resize", () => setInitialViewBox(svg, svgContainer, controlledPoints));
+}
 main();
-
-
-    // Update the viewBox when the window is resized
-    //window.addEventListener("resize", () => setInitialViewBox(svg, svgContainer));
-
-
-
