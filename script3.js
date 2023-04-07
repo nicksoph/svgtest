@@ -149,7 +149,7 @@ function sineWaveData(numPoints, startX, endX, amplitude, frequency, collapseFac
     return;
 }
 
-const svg = draw(Points)
+
 setInitialViewBox(svg, svgContainer, Points);
 
 
