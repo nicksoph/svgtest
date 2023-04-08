@@ -1,8 +1,12 @@
 // Points is a universally accessible variable, that is added to by the functions
+const PI = Math.PI;
+let startTime = 0;
+let numSteps = 1000;
+let timeStep = 0.01;
 const Points = [];
 // The DIV that the svg goes into
 const svgContainer = document.getElementById("svg-container");
-const multi = 5
+const multi = 1000
 const pendulums = [
     {
         axis: 'x',
@@ -18,7 +22,6 @@ const pendulums = [
         phaseShift: 0,
         damping: 0.996
     },
-    // Add two more pendulums with default settings
     {
         axis: 'x',
         amplitude: 1,
@@ -33,12 +36,10 @@ const pendulums = [
         phaseShift: 0,
         damping: 0.996
     }
-];
+]
 
-// Variables for start time, number of steps, and step size in time
-let startTime = 0;
-let numSteps = 1000;
-let timeStep = 0.01;
+
+
 
 main();
 
@@ -62,6 +63,17 @@ document.getElementById('addPendulum').addEventListener('click', () => {
     pendulums.push(newPendulum);
     addPendulumControl(pendulums.length - 1);
 });
+// Add functionality to the "Remove Pendulum" button
+document.getElementById('removePendulum').addEventListener('click', () => {
+    if (pendulums.length > 1) {
+        pendulums.pop();
+        const pendulumControls = document.getElementById('pendulums');
+        pendulumControls.removeChild(pendulumControls.lastChild);
+        updateSettingsDisplay();
+    } else {
+        alert('You must have at least one pendulum.');
+    }
+});
 
 function main() {
     // Add Calculated x,y's to empty Points array
@@ -69,7 +81,7 @@ function main() {
     // Add Handle data
     setControl(Points);
     // Make svg 
-    const svg = draw(Points, svgContainer);
+    var svg = draw(Points, svgContainer);
     // Set the sizes of view
     setInitialViewBox(svg, svgContainer, Points);
     // Initialize the SVG PanZoom library
@@ -98,8 +110,15 @@ function main() {
             const viewBoxHeight = parseFloat(viewBox[3]);
         },
     });
-    //dont know
+
     setWindowSize(svg, svgContainer, Points);
+    makeData()
+    setControl(Points);
+    svgContainer.innerHTML = ""
+    var svg = ""
+    var svg = draw(Points, svgContainer);
+    setInitialViewBox(svg, svgContainer, Points);
+
 };
 
 function updateSettingsDisplay() {
@@ -259,59 +278,6 @@ function setWindowSize(svg, svgContainer, Points) {
     window.addEventListener("resize", () => setInitialViewBox(svg, svgContainer, Points));
 };
 
-// function createPendulumControl2(index) {
-//     const pendulumControl = document.createElement('div');
-//     pendulumControl.className = 'pendulum-controls';
-
-//     const label = document.createElement('h3');
-//     label.textContent = `Pendulum ${index + 1}`;
-//     pendulumControl.appendChild(label);
-
-
-
-//     settings.forEach((setting) => {
-//         const settingLabel = document.createElement('label');
-//         settingLabel.textContent = `${setting.name}: `;
-//         pendulumControl.appendChild(settingLabel);
-
-//         if (setting.type === 'radio') {
-//             setting.options.forEach((option) => {
-//                 const radioButton = document.createElement('input');
-//                 radioButton.type = 'radio';
-//                 radioButton.name = `pendulum${index}-${setting.name}`;
-//                 radioButton.value = option;
-//                 radioButton.checked = pendulums[index][setting.name] === option;
-//                 radioButton.addEventListener('change', () => {
-//                     pendulums[index][setting.name] = option;
-//                     updateSettingsDisplay();
-//                 });
-
-//                 const optionLabel = document.createElement('label');
-//                 optionLabel.textContent = option;
-//                 pendulumControl.appendChild(optionLabel);
-//                 pendulumControl.appendChild(radioButton);
-//             });
-//         } else {
-//             const slider = document.createElement('input');
-//             slider.type = setting.type;
-//             slider.min = setting.min;
-//             slider.max = setting.max;
-//             slider.step = setting.step;
-//             slider.value = setting.default;
-//             slider.addEventListener('input', () => {
-//                 pendulums[index][setting.name] = parseFloat(slider.value);
-//                 updateSettingsDisplay();
-//             });
-
-//             pendulumControl.appendChild(slider);
-//         }
-
-//         pendulumControl.appendChild(document.createElement('br'));
-//     });
-
-//     return pendulumControl;
-// }
-
 function createPendulumControl(index) {
     const pendulumControl = document.createElement('div');
     pendulumControl.className = 'pendulum-controls';
@@ -376,12 +342,12 @@ function addPendulumControl(index) {
 };
 
 function createGlobalControls() {
-    const pendulumsDiv = document.getElementById('pendulums');
+    const timestepDiv = document.getElementById('timecontrols');
 
     // Create start time input
     const startTimeLabel = document.createElement('label');
     startTimeLabel.textContent = 'Start Time: ';
-    pendulumsDiv.appendChild(startTimeLabel);
+    timestepDiv.appendChild(startTimeLabel);
 
     const startTimeInput = document.createElement('input');
     startTimeInput.type = 'number';
@@ -391,14 +357,14 @@ function createGlobalControls() {
     startTimeInput.addEventListener('input', () => {
         startTime = parseFloat(startTimeInput.value);
     });
-    pendulumsDiv.appendChild(startTimeInput);
+    timestepDiv.appendChild(startTimeInput);
 
-    pendulumsDiv.appendChild(document.createElement('br'));
+    timestepDiv.appendChild(document.createElement('br'));
 
     // Create number of steps input
     const numStepsLabel = document.createElement('label');
-    numStepsLabel.textContent = 'Number of Steps: ';
-    pendulumsDiv.appendChild(numStepsLabel);
+    numStepsLabel.textContent = 'No. of Steps: ';
+    timestepDiv.appendChild(numStepsLabel);
 
     const numStepsInput = document.createElement('input');
     numStepsInput.type = 'number';
@@ -408,14 +374,14 @@ function createGlobalControls() {
     numStepsInput.addEventListener('input', () => {
         numSteps = parseInt(numStepsInput.value);
     });
-    pendulumsDiv.appendChild(numStepsInput);
+    timestepDiv.appendChild(numStepsInput);
 
-    pendulumsDiv.appendChild(document.createElement('br'));
+    timestepDiv.appendChild(document.createElement('br'));
 
     // Create time step input
     const timeStepLabel = document.createElement('label');
     timeStepLabel.textContent = 'Time Step: ';
-    pendulumsDiv.appendChild(timeStepLabel);
+    timestepDiv.appendChild(timeStepLabel);
 
     const timeStepInput = document.createElement('input');
     timeStepInput.type = 'number';
@@ -426,9 +392,41 @@ function createGlobalControls() {
     timeStepInput.addEventListener('input', () => {
         timeStep = parseFloat(timeStepInput.value);
     });
-    pendulumsDiv.appendChild(timeStepInput);
+    timestepDiv.appendChild(timeStepInput);
 
-    pendulumsDiv.appendChild(document.createElement('br'));
-    pendulumsDiv.appendChild(document.createElement('br'));
+    timestepDiv.appendChild(document.createElement('br'));
+
 }
 
+
+// Define the parameters for which to calculate the positions
+
+function makeData() {
+    Points.length = 0
+    for (i = 0; i < numSteps; i++) {
+        time = startTime + (i * timeStep)
+        var x = 0
+        var y = 0
+        pendulums.forEach(pendulum => {
+            var pos = getPos(time, pendulum)
+            if (pendulum.axis === "x") {
+                x += pos
+            } else {
+                y += pos
+            }
+        })
+        Points.push({ p1: { x: x * multi, y: y * multi } })
+    }
+    return Points
+}
+// Create a function to calculate the position for a single pendulum object at a given time
+function getPos(time, pendulum) {
+    const { axis, amplitude, frequency, phaseShift, damping } = pendulum;
+    // const exponentialTerm = Math.exp(-damping * time);
+    // const cosineTerm = Math.cos(2 * PI * frequency * time + phaseShift);
+    const position = amplitude * (Math.exp(-damping * time)) * (Math.cos(2 * PI * frequency * time + phaseShift));
+    return position;
+}
+
+
+console.log(Points);

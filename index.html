@@ -10,31 +10,36 @@
 
 <body>
     <div class="container">
-        <div class="left-column">Left Column
+        <div class="left-column">
             <div id="home">
-                <h2>Current Settings:</h2>
                 <div id="settingsDisplay">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Pendulum</th>
-                                <th>Axis</th>
-                                <th>Amplitude</th>
-                                <th>Frequency</th>
-                                <th>Phase Shift</th>
-                                <th>Damping</th>
-                            </tr>
-                        </thead>
-                        <tbody id="pendulumSettings"></tbody>
-                    </table>
-                    <br>
+                    <h2>Settings:</h2>
                     <div>Start Time: <span id="displayStartTime"></span></div>
-                    <div>Number of Steps: <span id="displayNumSteps"></span></div>
+                    <div>No. Steps: <span id="displayNumSteps"></span></div>
                     <div>Time Step: <span id="displayTimeStep"></span></div>
+                    <div id=pens>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Pen</th>
+                                    <th>Axis</th>
+                                    <th>Amp</th>
+                                    <th>Freq</th>
+                                    <th>Phase</th>
+                                    <th>Damp</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pendulumSettings"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
             <div id="timecontrols"></div>
-            <div id="pendulums"><button id="addPendulum">Add Pendulum</button></div>
+            n</br>
+            <div id="addpens"><button id="addPendulum">Add Pendulum</button>
+                <button id="removePendulum">Remove Pendulum</button>
+            </div>
+            <div id="pendulums"></div>
             <div id="colour"></div>
             <div id="width"></div>
             <div id="file"></div>
