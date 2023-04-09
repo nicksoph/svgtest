@@ -1,5 +1,6 @@
 // Points is a universally accessible variable, that is added to by the functions
 const PI = Math.PI;
+var svg = ""
 let startTime = 0;
 let numSteps = 1000;
 let timeStep = 0.01;
@@ -11,80 +12,46 @@ const pendulums = [
     {
         axis: 'x',
         amplitude: 1,
-        frequency: 1,
-        phaseShift: 0,
-        damping: 0.996
+        frequency: 3,
+        phaseShift: .5,
+        damping: 1
     },
     {
         axis: 'y',
         amplitude: 1,
-        frequency: 2,
+        frequency: 3,
         phaseShift: 0,
-        damping: 0.996
+        damping: 1
     },
     {
         axis: 'x',
         amplitude: 1,
-        frequency: 1,
+        frequency: 5,
         phaseShift: 0,
-        damping: 0.996
+        damping: 1
     },
     {
         axis: 'y',
         amplitude: 1,
-        frequency: 2,
-        phaseShift: 0,
-        damping: 0.996
+        frequency: 5.01,
+        phaseShift: 1,
+        damping: 1
     }
 ]
 
 
 
+function update() {
 
-main();
-
-// Call the function to create global controls
-createGlobalControls();
-updateSettingsDisplay();
-// Add initial pendulum controls
-for (let i = 0; i < pendulums.length; i++) {
-    addPendulumControl(i);
-}
-
-// Add functionality to the "Add Pendulum" button
-document.getElementById('addPendulum').addEventListener('click', () => {
-    const newPendulum = {
-        axis: 'x',
-        amplitude: 1,
-        frequency: 1,
-        phaseShift: 0,
-        damping: 0.996
-    };
-    pendulums.push(newPendulum);
-    addPendulumControl(pendulums.length - 1);
-});
-// Add functionality to the "Remove Pendulum" button
-document.getElementById('removePendulum').addEventListener('click', () => {
-    if (pendulums.length > 1) {
-        pendulums.pop();
-        const pendulumControls = document.getElementById('pendulums');
-        pendulumControls.removeChild(pendulumControls.lastChild);
-        updateSettingsDisplay();
-    } else {
-        alert('You must have at least one pendulum.');
-    }
-});
-
-function main() {
-    // Add Calculated x,y's to empty Points array
-    sineWaveData(4000, 0, 50 * Math.PI, 100, 1, 20);
-    // Add Handle data
-    setControl(Points);
-    // Make svg 
-    var svg = draw(Points, svgContainer);
-    // Set the sizes of view
+    makeData(Points);
+    // setControl(Points);
+    smoothCurve(Points)
+    chop(Points)
+    svg = draw(Points, svgContainer);
+    console.log(svg)
     setInitialViewBox(svg, svgContainer, Points);
-    // Initialize the SVG PanZoom library
+    setWindowSize(svg, svgContainer, Points);
+    console.log("setWindowSize");
     const panZoomInstance = panzoom(svg, {
         zoomEnabled: true,
         panEnabled: true,
@@ -110,16 +77,94 @@ function main() {
             const viewBoxHeight = parseFloat(viewBox[3]);
         },
     });
+}
 
-    setWindowSize(svg, svgContainer, Points);
-    makeData()
-    setControl(Points);
-    svgContainer.innerHTML = ""
-    var svg = ""
-    var svg = draw(Points, svgContainer);
-    setInitialViewBox(svg, svgContainer, Points);
+// Add Calculated x,y's to empty Points array
+makeData(Points)
 
-};
+// Add Handle data
+//setControl(Points);
+smoothCurve(Points)
+// Make svg 
+svg = draw(Points, svgContainer);
+// Set the sizes of view
+setInitialViewBox(svg, svgContainer, Points);
+// Initialize the SVG PanZoom library
+const panZoomInstance = panzoom(svg, {
+    zoomEnabled: true,
+    panEnabled: true,
+    controlIconsEnabled: true,
+    fit: true,
+    center: true,
+    minZoom: 0.015,
+    maxZoom: 1000,
+    beforePan: function () {
+        // Disable animation during panning to improve performance
+        panZoomInstance.disablePanAnimation();
+    },
+    onPan: function () {
+        // Re-enable animation after panning is complete
+        panZoomInstance.enablePanAnimation();
+    },
+    onZoom: function () {
+        // Update the viewBox after zooming
+        const { x, y } = panZoomInstance.getPan();
+        const zoomLevel = panZoomInstance.getZoom();
+        const viewBox = svg.getAttribute("viewBox").split(" ");
+        const viewBoxWidth = parseFloat(viewBox[2]);
+        const viewBoxHeight = parseFloat(viewBox[3]);
+    },
+});
+setWindowSize(svg, svgContainer, Points);
+
+// Call the function to create global controls
+createGlobalControls();
+updateSettingsDisplay();
+addPendsCtrl()
+evntBtn()
+
+// makeData()
+// setControl(Points);
+//  svgContainer.innerHTML = ""
+//  var svg = ""
+// var svg = draw(Points, svgContainer);
+//  setInitialViewBox(svg, svgContainer, Points);
+
+
+
+
+function addPendsCtrl() {
+    // Add initial pendulum controls
+    for (let i = 0; i < pendulums.length; i++) {
+        addPendulumControl(i);
+    }
+}
+function evntBtn() {
+    // Add functionality to the "Add Pendulum" button
+    document.getElementById('addPendulum').addEventListener('click', () => {
+        const newPendulum = {
+            axis: 'x',
+            amplitude: 1,
+            frequency: 1,
+            phaseShift: 0,
+            damping: 0.996
+        };
+        pendulums.push(newPendulum);
+        addPendulumControl(pendulums.length - 1);
+    });
+    // Add functionality to the "Remove Pendulum" button
+    document.getElementById('removePendulum').addEventListener('click', () => {
+        if (pendulums.length > 1) {
+            pendulums.pop();
+            const pendulumControls = document.getElementById('pendulums');
+            pendulumControls.removeChild(pendulumControls.lastChild);
+            updateSettingsDisplay();
+        } else {
+            alert('You must have at least one pendulum.');
+        }
+    });
+    document.getElementById('run').addEventListener('click', () => (update()));
+}
 
 function updateSettingsDisplay() {
     const tbody = document.getElementById('pendulumSettings');
@@ -156,27 +201,112 @@ function sineWaveData(numPoints, startX, endX, amplitude, frequency, collapseFac
     return;
 };
 
-function setControl(Points) {
-    // Estimate imaginary points before and after the line
-    let imaginaryStart1 = {
-        x: 2 * Points[0].p1.x - Points[1].p1.x,
-        y: 2 * Points[0].p1.y - Points[1].p1.y,
-    };
+// function setControl(Points) {
+//     // Estimate imaginary points before and after the line
+//     let imaginaryStart1 = {
+//         x: 2 * Points[0].p1.x - Points[1].p1.x,
+//         y: 2 * Points[0].p1.y - Points[1].p1.y,
+//     };
 
-    let imaginaryEnd1 = {
-        x: 2 * Points[Points.length - 1].p1.x - Points[Points.length - 2].p1.x,
-        y: 2 * Points[Points.length - 1].p1.y - Points[Points.length - 2].p1.y,
-    };
+//     let imaginaryEnd1 = {
+//         x: 2 * Points[Points.length - 1].p1.x - Points[Points.length - 2].p1.x,
+//         y: 2 * Points[Points.length - 1].p1.y - Points[Points.length - 2].p1.y,
+//     };
 
-    // Explicitly calculate control points for the first real point
-    generateControlPoints(0, imaginaryStart1, Points[0].p1, Points[1].p1, Points[2].p1);
-    for (i = 1; i < Points.length - 2; i++) {
-        generateControlPoints(i, Points[i - 1].p1, Points[i].p1, Points[i + 1].p1, Points[i + 2].p1);
+//     // Explicitly calculate control points for the first real point
+//     generateControlPoints(0, imaginaryStart1, Points[0].p1, Points[1].p1, Points[2].p1);
+//     for (i = 1; i < Points.length - 2; i++) {
+//         generateControlPoints(i, Points[i - 1].p1, Points[i].p1, Points[i + 1].p1, Points[i + 2].p1);
+//     }
+//     generateControlPoints(Points.length - 2, Points[Points.length - 3].p1, Points[Points.length - 2].p1, Points[Points.length - 1].p1, imaginaryEnd1);
+//     return Points
+// };
+
+function smoothCurve(Points) {
+    const tension = 6
+    const result = {};
+    for (let i = 1; i < Points.length - 2; i++) {
+        const p0 = Points[i - 1];
+        const p1 = Points[i];
+        const p2 = Points[i + 1];
+        const p3 = Points[i + 2];
+        Points[i].cp1 = {};
+        Points[i].cp2 = {};
+        Points[i].cp1.x = p1.p1.x + ((p2.p1.x - p0.p1.x) / tension);
+        Points[i].cp1.y = p1.p1.y + ((p2.p1.y - p0.p1.y) / tension);
+        Points[i].cp2.x = p2.p1.x - ((p3.p1.x - p1.p1.x) / tension);
+        Points[i].cp2.y = p2.p1.y - ((p3.p1.y - p1.p1.y) / tension);
+        Points[i].p2 = { x: Points[i + 1].p1.x, y: Points[i + 1].p1.y };
     }
+    // // Points[i]{cp1}
+    // var fp0 = Points[0];
+    // var fp1 = Points[0];
+    // var fp2 = Points[1];
+    // var fp3 = Points[2];
+    // if (!Points[0].cp1) {
+    //     Points[0].cp1 = {};
+    // }
+    // Points[0].cp1 = {};
+    // Points[0].cp2 = {};
+    // Points[0].cp1.x = fp1.p1.x + ((fp2.p1.x - fp0.p1.x) / tension);
+    // Points[0].cp1.y = fp1.p1.y + ((fp2.p1.y - fp0.p1.y) / tension);
+    // Points[0].cp2.x = fp2.p1.x - ((fp3.p1.x - fp1.p1.x) / tension);
+    // Points[0].cp2.y = fp2.p1.y - ((fp3.p1.y - fp1.p1.y) / tension);
+    // Points[0].p2 = { x: Points[1].p1.x, y: Points[1].p1.y };
+    // fp0 = Points[Points.length - 2];
+    // fp1 = Points[Points.length - 2];
+    // fp2 = Points[Points.length - 1];
+    // fp3 = Points[Points.length - 1];
+    // Points[Points.length - 2].cp1 = {}
+    // Points[Points.length - 2].cp2 = {}
+    // Points[Points.length - 2].cp1.x = fp1.p1.x + ((fp2.p1.x - fp0.p1.x) / tension);
+    // Points[Points.length - 2].cp1.y = fp1.p1.y + ((fp2.p1.y - fp0.p1.y) / tension);
+    // Points[Points.length - 2].cp2.x = fp2.p1.x - ((fp3.p1.x - fp1.p1.x) / tension);
+    // Points[Points.length - 2].cp2.y = fp2.p1.y - ((fp3.p1.y - fp1.p1.y) / tension);
+    // Points[Points.length - 1].cp1 = {}
+    // Points[Points.length - 1].cp2 = {}
+    // Points[Points.length - 1].cp1.x = fp1.p1.x + ((fp2.p1.x - fp0.p1.x) / tension);
+    // Points[Points.length - 1].cp1.y = fp1.p1.y + ((fp2.p1.y - fp0.p1.y) / tension);
+    // Points[Points.length - 1].cp2.x = fp2.p1.x - ((fp3.p1.x - fp1.p1.x) / tension);
+    // Points[Points.length - 1].cp2.y = fp2.p1.y - ((fp3.p1.y - fp1.p1.y) / tension);
+    return Points
+}
+function chop(Points) {
+    Points.shift();
+    Points.pop();
+    Points.pop();
+    return Points
+}
 
-    generateControlPoints(Points.length - 2, Points[Points.length - 3].p1, Points[Points.length - 2].p1, Points[Points.length - 1].p1, imaginaryEnd1);
-};
 
+// function generateControlPoints(index, pointA, pointB, pointC, pointD) {
+//     // Tension controls the tightness of the curve
+//     const tension = 0.5;
+
+//     // Calculates control points for a curve passing through the current point and next
+//     const dx1 = pointB.x - pointA.x;
+//     const dy1 = pointB.y - pointA.y;
+//     const dx2 = pointC.x - pointB.x;
+//     const dy2 = pointC.y - pointB.y;
+
+//     const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+//     const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+
+//     const cp1x = pointB.x + (dx1 * tension * len1) / (len1 + len2);
+//     const cp1y = pointB.y + (dy1 * tension * len1) / (len1 + len2);
+//     const cp2x = pointB.x - (dx2 * tension * len2) / (len1 + len2);
+//     const cp2y = pointB.y - (dy2 * tension * len2) / (len1 + len2);
+
+//     // Update control points
+//     Points[index].cp1 = { x: cp1x, y: cp1y };
+//     Points[index].cp2 = { x: cp2x, y: cp2y };
+
+//     if (Points[index + 1]) {
+//         Points[index].p2 = { x: Points[index + 1].p1.x, y: Points[index + 1].p1.y };
+//     } else {
+//         Points[index].p2 = { x: Points[index].p1.x, y: Points[index].p1.y };
+//     };
+// };
 function generateControlPoints(index, pointA, pointB, pointC, pointD) {
     // Tension controls the tightness of the curve
     const tension = 0.5;
@@ -186,14 +316,17 @@ function generateControlPoints(index, pointA, pointB, pointC, pointD) {
     const dy1 = pointB.y - pointA.y;
     const dx2 = pointC.x - pointB.x;
     const dy2 = pointC.y - pointB.y;
+    const dx3 = pointD.x - pointC.x;
+    const dy3 = pointD.y - pointC.y;
 
     const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
     const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+    const len3 = Math.sqrt(dx3 * dx3 + dy3 * dy3);
 
-    const cp1x = pointB.x + (dx1 * tension * len1) / (len1 + len2);
-    const cp1y = pointB.y + (dy1 * tension * len1) / (len1 + len2);
-    const cp2x = pointB.x - (dx2 * tension * len2) / (len1 + len2);
-    const cp2y = pointB.y - (dy2 * tension * len2) / (len1 + len2);
+    const cp1x = pointB.x + (dx1 * tension * len2) / (len1 + len2);
+    const cp1y = pointB.y + (dy1 * tension * len2) / (len1 + len2);
+    const cp2x = pointC.x - (dx3 * tension * len2) / (len2 + len3);
+    const cp2y = pointC.y - (dy3 * tension * len2) / (len2 + len3);
 
     // Update control points
     Points[index].cp1 = { x: cp1x, y: cp1y };
@@ -207,6 +340,7 @@ function generateControlPoints(index, pointA, pointB, pointC, pointD) {
 };
 
 function draw(Points, svgContainer) {
+    svgContainer.innerHTML = ""
     const svg = createSVGElement();
     svgContainer.appendChild(svg);
     var xxx = -1
@@ -214,7 +348,6 @@ function draw(Points, svgContainer) {
     Points.forEach((line) => {
 
         const { p1, cp1, cp2, p2 } = line;
-
         if (!p2) { return }
         const { x: p1x, y: p1y } = p1;
         const { x: cp1x, y: cp1y } = cp1;
@@ -222,7 +355,7 @@ function draw(Points, svgContainer) {
         const { x: p2x, y: p2y } = p2;
 
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        const d = `M ${p1x} ${p1y} C ${cp1x} ${cp1y} ${cp2x} ${cp2y} ${p2x} ${p2y}`;
+        const d = `M ${p1x} ${p1y} C ${cp1y} ${cp1x}, ${cp2x} ${cp2y}, ${p2x} ${p2y}`;
 
         path.setAttribute("d", d);
         path.setAttribute("stroke", "Red");
@@ -396,15 +529,12 @@ function createGlobalControls() {
 
     timestepDiv.appendChild(document.createElement('br'));
 
-}
+};
 
-
-// Define the parameters for which to calculate the positions
-
-function makeData() {
+function makeData(Points) {
     Points.length = 0
-    for (i = 0; i < numSteps; i++) {
-        time = startTime + (i * timeStep)
+    for (i = 0; i < numSteps + 3; i++) {
+        time = 0 - timeStep + startTime + (i * timeStep)
         var x = 0
         var y = 0
         pendulums.forEach(pendulum => {
@@ -418,8 +548,8 @@ function makeData() {
         Points.push({ p1: { x: x * multi, y: y * multi } })
     }
     return Points
-}
-// Create a function to calculate the position for a single pendulum object at a given time
+};
+// Calculate the position for a single pendulum object at a given time
 function getPos(time, pendulum) {
     const { axis, amplitude, frequency, phaseShift, damping } = pendulum;
     // const exponentialTerm = Math.exp(-damping * time);
@@ -427,6 +557,5 @@ function getPos(time, pendulum) {
     const position = amplitude * (Math.exp(-damping * time)) * (Math.cos(2 * PI * frequency * time + phaseShift));
     return position;
 }
+position = amplitude * (Math.exp(-damping * time)) * (Math.cos(2 * PI * frequency * time + phaseShift))
 
-
-console.log(Points);
