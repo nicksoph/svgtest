@@ -1,14 +1,13 @@
 // Points is a universally accessible variable, that is added to by the functions
-const PI = Math.PI;
+
 var svg = ""
-let startTime = 0;
-let numSteps = 1000;
-let timeStep = 0.01;
+const Time = { numSteps: 1000, timeStep: 0.01, startTime: 0 };
 const Points = [];
 // The DIV that the svg goes into
 const svgContainer = document.getElementById("svg-container");
 const multi = 1000
-const pendulums = [
+//const Pendulums = []
+const Pendulums = [
     {
         axis: 'x',
         amplitude: 1,
@@ -16,6 +15,8 @@ const pendulums = [
         phaseShift: 0,
         damping: 1
     },
+
+
     {
         axis: 'y',
         amplitude: 1,
@@ -39,16 +40,18 @@ const pendulums = [
     }
 ]
 const penDefault = {
-    axis: 'x',
+    axis: 'y',
     amplitude: 1,
     frequency: 3.02,
     phaseShift: 0,
-    damping: 1
+    damping: .9
 }
-//makeData(Points);
+
 update();
 setWindowSize(svg, svgContainer, Points);
+createGlobalControls();
 evntBtn()
+
 
 function update() {
     makeData(Points);
@@ -56,11 +59,10 @@ function update() {
     chop(Points)
     svg = draw(Points, svgContainer);
     setViewBox(svg, svgContainer, Points)
-    //evntBtn()
-    createGlobalControls();
-    // update()
-    updateSettingsDisplay();
-    addPendsCtrl()
+    updateTimeDisplay()
+    makePendsCtrl()
+    updatePendDisplay();
+    pendEvt();
     const panZoomInstance = panzoom(svg, {
         zoomEnabled: true,
         panEnabled: true,
@@ -88,43 +90,97 @@ function update() {
     });
 };
 
+function pendEvt() {
+    var pendEvtDiv = document.getElementById("allPendCtrlDiv");
+    pendEvtDiv.addEventListener('input', function (event) {
+        const target = event.target;
+        if (target.type === 'range') {
+            const num = parseInt(target.getAttribute('data-index'));
+            const property = target.getAttribute('data-property');
+            Pendulums[num][property] = parseFloat(target.value);
+
+        } else if (target.type === 'radio') {
+            const num = parseInt(target.getAttribute('data-index'));
+            const property = 'axis';
+            const axis = target.value;
+            Pendulums[num][property] = axis;
+
+        }
+        updatePendDisplay();
+    });
+}
+
+function timeEvt() {
+    const timeEvtDiv = document.getElementById("timecontrol");
+    timeEvtDiv.addEventListener('input', () => {
+        updateTimeDisplay()
+    });
+}
+
 function evntBtn() {
     // Add functionality to the "Add Pendulum" button
     document.getElementById('addPendulum').addEventListener('click', () => {
-        pendulums.push(penDefault);
-        addPendsCtrl();
-        //update();
-        updateSettingsDisplay();
+        Pendulums.push(penDefault);
+        update();
     });
     // Add functionality to the "Remove Pendulum" button
     document.getElementById('removePendulum').addEventListener('click', () => {
-        if (pendulums.length > 4) {
-            pendulums.pop();
+        if (Pendulums.length > 4) {
+            Pendulums.pop();
         } else {
             alert('You must have at least four penduli.');
         }
-        addPendsCtrl();
-        // update();
-        updateSettingsDisplay();
+        update();
     });
     document.getElementById('run').addEventListener('click', () => (update()));
 };
 
-function addPendsCtrl() {
-    document.getElementById('pendulums').innerHTML = "";
-    for (let i = 0; i < pendulums.length; i++) {
-        addPendulumControl(i);
+function makePendsCtrl() {
+    pendulumsDiv = document.getElementById('pendulumsDiv')
+    pendulumsDiv.innerHTML = "";
+    allPendCtrlDiv = document.createElement('div')
+    allPendCtrlDiv.setAttribute('id', 'allPendCtrlDiv')
+    pendulumsDiv.appendChild(allPendCtrlDiv)
+
+
+    for (let i = 0; i < Pendulums.length; i++) {
+        let pendulumControl = createPendulumControl(i);
+        let pendCtrl = document.createElement('div')
+        pendCtrl.setAttribute('id', `pendCtrlDiv${i}`)
+        pendCtrl.appendChild(pendulumControl)
+        allPendCtrlDiv.appendChild(pendCtrl)
     }
+    // Add event listener to the pendulumsDiv
+    pendulumsDiv.addEventListener('input', function (event) {
+        const target = event.target;
+        // Check if the target is a slider (input[type=range])
+        if (target.type === 'range') {
+            //if (target.tagName === 'INPUT' && target.type === 'range') 
+            const num = parseInt(target.getAttribute('data-index'), 10);
+            const dproperty = target.getAttribute('data-property');
+            Pendulums[num][dproperty] = event.target.value;
+            console.log([dproperty])
+            // Update the corresponding property in the Pendulums array
+            Pendulums[num].dproperty = parseFloat(target.value);
+        }
+        else if (target.type === 'radio') {
+            const num = parseInt(target.getAttribute('data-index'));
+            const property = 'axis';
+            const axis = target.value;
+            Pendulums[num][property] = axis;
+        }
+        updatePendDisplay()
+    })
 };
 
-function updateSettingsDisplay() {
+function updatePendDisplay() {
     const tbody = document.getElementById('pendulumSettings');
     tbody.innerHTML = '';
 
-    pendulums.forEach((pendulum, index) => {
+    Pendulums.forEach((pendulum, index) => {
         const row = document.createElement('tr');
         const pendulumNumber = document.createElement('td');
-        pendulumNumber.textContent = index + 1;
+        pendulumNumber.textContent = index;
         row.appendChild(pendulumNumber);
 
         ['axis', 'amplitude', 'frequency', 'phaseShift', 'damping'].forEach((property) => {
@@ -134,22 +190,13 @@ function updateSettingsDisplay() {
         });
 
         tbody.appendChild(row);
-    });
-
-    document.getElementById('displayStartTime').textContent = startTime;
-    document.getElementById('displayNumSteps').textContent = numSteps;
-    document.getElementById('displayTimeStep').textContent = timeStep;
+    })
 };
 
-//Adds {p1: {x: Val, y: Val} } by caclculating point and then multiplying by multi
-function sineWaveData(numPoints, startX, endX, amplitude, frequency, collapseFactor) {
-    let step = (endX - startX) / (numPoints - 1);
-    for (let i = 0; i < numPoints; i++) {
-        let x = startX + i * step;
-        let y = Math.sin(frequency * x) * amplitude / (1 + (x / collapseFactor) ** 2);
-        Points.push({ p1: { x: x * multi, y: y * multi } });
-    }
-    return;
+function updateTimeDisplay() {
+    document.getElementById('displayStartTime').textContent = Time.startTime;
+    document.getElementById('displayNumSteps').textContent = Time.numSteps;
+    document.getElementById('displayTimeStep').textContent = Time.timeStep;
 };
 
 function smoothCurve(Points) {
@@ -177,37 +224,6 @@ function chop(Points) {
     Points.pop();
     return Points
 };
-
-// function generateControlPoints(index, pointA, pointB, pointC, pointD) {
-//     // Tension controls the tightness of the curve
-//     const tension = 0.5;
-//     // Calculates control points for a curve passing through the current point and next
-//     const dx1 = pointB.x - pointA.x;
-//     const dy1 = pointB.y - pointA.y;
-//     const dx2 = pointC.x - pointB.x;
-//     const dy2 = pointC.y - pointB.y;
-//     const dx3 = pointD.x - pointC.x;
-//     const dy3 = pointD.y - pointC.y;
-
-//     const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
-//     const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
-//     const len3 = Math.sqrt(dx3 * dx3 + dy3 * dy3);
-
-//     const cp1x = pointB.x + (dx1 * tension * len2) / (len1 + len2);
-//     const cp1y = pointB.y + (dy1 * tension * len2) / (len1 + len2);
-//     const cp2x = pointC.x - (dx3 * tension * len2) / (len2 + len3);
-//     const cp2y = pointC.y - (dy3 * tension * len2) / (len2 + len3);
-
-//     // Update control points
-//     Points[index].cp1 = { x: cp1x, y: cp1y };
-//     Points[index].cp2 = { x: cp2x, y: cp2y };
-
-//     if (Points[index + 1]) {
-//         Points[index].p2 = { x: Points[index + 1].p1.x, y: Points[index + 1].p1.y };
-//     } else {
-//         Points[index].p2 = { x: Points[index].p1.x, y: Points[index].p1.y };
-//     };
-// };
 
 function draw(Points, svgContainer) {
     svgContainer.innerHTML = ""
@@ -255,6 +271,7 @@ function setViewBox(svg, svgContainer, Points) {
 
     const containerWidth = svgContainer.clientWidth;
     const containerHeight = svgContainer.clientHeight;
+
     const containerAspectRatio = containerWidth / containerHeight;
 
     const contentAspectRatio = contentWidth / contentHeight;
@@ -268,6 +285,8 @@ function setViewBox(svg, svgContainer, Points) {
         viewBoxHeight = contentWidth / containerAspectRatio;
     }
 
+    //console.log(minX, margin, minY, viewBoxWidth, "vb", viewBoxHeight)
+
     svg.setAttribute("viewBox", `${minX - margin} ${minY - margin} ${viewBoxWidth} ${viewBoxHeight}`);
 };
 
@@ -276,38 +295,36 @@ function setWindowSize(svg, svgContainer, Points) {
     window.addEventListener("resize", () => setViewBox(svg, svgContainer, Points));
 };
 
-function createPendulumControl(index) {
+function createPendulumControl(i) {
     const pendulumControl = document.createElement('div');
+
     pendulumControl.className = 'pendulum-controls';
 
     const label = document.createElement('h3');
-    label.textContent = `Pendulum ${index + 1}`;
+    label.textContent = `Pendulum ${i}`;
     pendulumControl.appendChild(label);
     const settings = [
-        { name: 'axis', type: 'radio', options: ['x', 'y'], default: pendulums[index].axis },
-        { name: 'amplitude', type: 'range', min: 0, max: 2, step: 0.01, default: pendulums[index].amplitude },
-        { name: 'frequency', type: 'range', min: 0, max: 10, step: 0.01, default: pendulums[index].frequency },
-        { name: 'phaseShift', type: 'range', min: -Math.PI, max: Math.PI, step: 0.01, default: pendulums[index].phaseShift },
-        { name: 'damping', type: 'range', min: 0, max: 1, step: 0.001, default: pendulums[index].damping }
+        { name: 'axis', type: 'radio', options: ['x', 'y'], default: 'x' },
+        { name: 'amplitude', type: 'range', min: 0, max: 1000, step: 0.01, default: Pendulums[0].amplitude },
+        { name: 'frequency', type: 'range', min: 0, max: 1000, step: 0.01, default: Pendulums[0].frequency },
+        { name: 'phaseShift', type: 'range', min: -Math.PI, max: Math.PI, step: 0.01, default: Pendulums[0].phaseShift },
+        { name: 'damping', type: 'range', min: 0, max: 1, step: 0.001, default: Pendulums[0].damping }
     ];
     settings.forEach((setting) => {
         const settingLabel = document.createElement('label');
-        settingLabel.textContent = `${setting.name}: `;
+        settingLabel.textContent = `${setting.name}${i}: `;
         pendulumControl.appendChild(settingLabel);
 
         if (setting.type === 'radio') {
             setting.options.forEach((option) => {
                 const radioButton = document.createElement('input');
                 radioButton.type = 'radio';
-                radioButton.name = `pendulum${index}-${setting.name}`;
+                radioButton.name = `pendulum${i}-${setting.name}`;
                 radioButton.value = option;
-                radioButton.checked = pendulums[index][setting.name] === option;
+                radioButton.checked = Pendulums[i][setting.name] === option;
+                radioButton.setAttribute('data-index', i);
+                radioButton.setAttribute('data-property', setting.name);
 
-                radioButton.addEventListener('change', () => {
-                    pendulums[index][setting.name] = option;
-                    //update();
-                    updateSettingsDisplay();
-                });
                 const optionLabel = document.createElement('label');
                 optionLabel.textContent = option;
                 pendulumControl.appendChild(optionLabel);
@@ -320,27 +337,15 @@ function createPendulumControl(index) {
             slider.max = setting.max;
             slider.step = setting.step;
             slider.value = setting.default;
-
-            slider.addEventListener('input', () => {
-                pendulums[index][setting.name] = parseFloat(slider.value);
-                updateSettingsDisplay();
-                // update();
-            });
-
+            slider.setAttribute('data-index', i);
+            slider.setAttribute('data-property', setting.name);
             pendulumControl.appendChild(slider);
         }
-
         pendulumControl.appendChild(document.createElement('br'));
+
     });
-
     return pendulumControl;
-};
-
-function addPendulumControl(index) {
-    const pendulumControl = createPendulumControl(index);
-    console.log("addpendulumcontrol")
-    document.getElementById('pendulums').appendChild(pendulumControl);
-};
+}
 
 function createGlobalControls() {
     const timestepDiv = document.getElementById('timecontrols');
@@ -353,10 +358,10 @@ function createGlobalControls() {
     const startTimeInput = document.createElement('input');
     startTimeInput.type = 'number';
     startTimeInput.id = 'startTime';
-    startTimeInput.value = startTime;
+    startTimeInput.value = Time.startTime;
     startTimeInput.step = 0.01;
     startTimeInput.addEventListener('input', () => {
-        startTime = parseFloat(startTimeInput.value);
+        Time.startTime = parseFloat(startTimeInput.value);
     });
     timestepDiv.appendChild(startTimeInput);
 
@@ -370,10 +375,10 @@ function createGlobalControls() {
     const numStepsInput = document.createElement('input');
     numStepsInput.type = 'number';
     numStepsInput.id = 'numSteps';
-    numStepsInput.value = numSteps;
+    numStepsInput.value = Time.numSteps;
     numStepsInput.min = 1;
     numStepsInput.addEventListener('input', () => {
-        numSteps = parseInt(numStepsInput.value);
+        Time.numSteps = parseInt(numStepsInput.value);
     });
     timestepDiv.appendChild(numStepsInput);
 
@@ -387,11 +392,11 @@ function createGlobalControls() {
     const timeStepInput = document.createElement('input');
     timeStepInput.type = 'number';
     timeStepInput.id = 'timeStep';
-    timeStepInput.value = timeStep;
+    timeStepInput.value = Time.timeStep;
     timeStepInput.step = 0.001;
     timeStepInput.min = 0.001;
     timeStepInput.addEventListener('input', () => {
-        timeStep = parseFloat(timeStepInput.value);
+        Time.timeStep = parseFloat(timeStepInput.value);
     });
     timestepDiv.appendChild(timeStepInput);
 
@@ -401,11 +406,11 @@ function createGlobalControls() {
 
 function makeData(Points) {
     Points.length = 0
-    for (i = 0; i < numSteps + 3; i++) {
-        time = 0 - timeStep + startTime + (i * timeStep)
+    for (i = 0; i < Time.numSteps + 3; i++) {
+        var time = Time.startTime - Time.timeStep + (i * Time.timeStep)
         var x = 0
         var y = 0
-        pendulums.forEach(pendulum => {
+        Pendulums.forEach(pendulum => {
             var pos = getPos(time, pendulum)
             if (pendulum.axis === "x") {
                 x += pos
@@ -422,8 +427,8 @@ function makeData(Points) {
 function getPos(time, pendulum) {
     const { axis, amplitude, frequency, phaseShift, damping } = pendulum;
     // const exponentialTerm = Math.exp(-damping * time);
-    // const cosineTerm = Math.cos(2 * PI * frequency * time + phaseShift);
-    const position = amplitude * (Math.exp(-damping * time)) * (Math.cos(2 * PI * frequency * time + phaseShift));
+    // const cosineTerm = Math.cos(2 * Math.PI * frequency * time + phaseShift);
+    const position = amplitude * (Math.exp(-damping * time)) * (Math.cos(2 * Math.PI * frequency * time + phaseShift));
     return position;
 };
 //position = amplitude * (Math.exp(-damping * time)) * (Math.cos(2 * PI * frequency * time + phaseShift))
